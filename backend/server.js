@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
@@ -7,15 +8,9 @@ app.use(cors());
 
 app.use(express.json({ limit: "50mb" }));
 
-app.get("/api/test", (req, res) => {
-  res.json({
-    message: "Backend berjalan",
-  });
-});
+// ================= API =================
 
 app.post("/api/detect", (req, res) => {
-  const image = req.body.image;
-
   console.log("Image Received");
 
   res.json({
@@ -24,6 +19,16 @@ app.post("/api/detect", (req, res) => {
   });
 });
 
-app.listen(3000, () => {
+// ================= FRONTEND =================
+
+app.use(express.static(path.join(__dirname, "frontend", "dist")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+});
+
+// ================= SERVER =================
+
+app.listen(3000, "0.0.0.0", () => {
   console.log("Server running on port 3000");
 });

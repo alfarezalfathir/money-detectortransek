@@ -10,6 +10,7 @@ function App() {
 
   const [result, setResult] = useState("");
   const [confidence, setConfidence] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     startCamera();
@@ -36,6 +37,8 @@ function App() {
   };
 
   const captureFrame = async () => {
+    if (isSending) return;
+
     const canvas = canvasRef.current;
     const video = videoRef.current;
 
@@ -54,8 +57,10 @@ function App() {
   };
 
   const sendToBackend = async (image) => {
+    setIsSending(true);
+
     try {
-      const response = await fetch("http://localhost:3000/api/detect", {
+      const response = await fetch("/api/detect", {
         method: "POST",
 
         headers: {
@@ -74,6 +79,8 @@ function App() {
     } catch (error) {
       console.log(error);
     }
+
+    setIsSending(false);
   };
 
   const startAutoCapture = () => {
