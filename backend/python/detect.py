@@ -3,7 +3,7 @@ import numpy as np
 import sys
 
 # =========================
-# LOAD IMAGE FILE
+# LOAD IMAGE
 # =========================
 
 image_path = sys.argv[1]
@@ -14,14 +14,17 @@ if img is None:
     print("PALSU")
     sys.exit()
 
-# resize
-img = cv2.resize(img, (300, 150))
+img = cv2.resize(img, (500, 250))
 
-# grayscale
-img_gray = cv2.cvtColor(
-    img,
-    cv2.COLOR_BGR2GRAY
-)
+gray1 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# =========================
+# ORB
+# =========================
+
+orb = cv2.ORB_create()
+
+kp1, des1 = orb.detectAndCompute(gray1, None)
 
 # =========================
 # TEMPLATE
@@ -42,7 +45,7 @@ templates = [
     }
 ]
 
-best_match = 0
+best_score = 0
 best_money = "UNKNOWN"
 
 # =========================
@@ -54,37 +57,38 @@ for item in templates:
     template = cv2.imread(item["path"])
 
     if template is None:
-        print("Template not found:", item["path"])
         continue
 
-    template = cv2.resize(template, (300, 150))
+    template = cv2.resize(template, (500, 250))
 
-    template_gray = cv2.cvtColor(
-        template,
-        cv2.COLOR_BGR2GRAY
-    )
+    gray2 = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
 
-    result = cv2.matchTemplate(
-        img_gray,
-        template_gray,
-        cv2.TM_CCOEFF_NORMED
-    )
+    kp2, des2 = orb.detectAndCompute(gray2, None)
 
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+    if des1 is None or des2 is None:
+        continue
 
-    print(item["name"], max_val)
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-    if max_val > best_match:
-        best_match = max_val
+    matches = bf.match(des1, des2)
+
+    matches = sorted(matches, key=lambda x: x.distance)
+
+    score = len(matches)
+
+    print(item["name"], score)
+
+    if score > best_score:
+        best_score = score
         best_money = item["name"]
 
 # =========================
 # RESULT
 # =========================
 
-print("BEST:", best_match)
+print("BEST:", best_score)
 
-if best_match > 0.20:
+if best_score > 80:
 
     print(f"ASLI - Rp {best_money}")
 
