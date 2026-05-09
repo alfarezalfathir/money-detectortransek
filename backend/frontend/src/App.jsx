@@ -27,8 +27,6 @@ function App() {
       videoRef.current.srcObject = stream;
 
       setStatus("Camera Active");
-
-      startAutoCapture();
     } catch (error) {
       console.log(error);
 
@@ -59,6 +57,8 @@ function App() {
   const sendToBackend = async (image) => {
     setIsSending(true);
 
+    setStatus("Scanning...");
+
     try {
       const response = await fetch("/api/detect", {
         method: "POST",
@@ -76,17 +76,25 @@ function App() {
 
       setResult(data.result);
       setConfidence(data.confidence);
+
+      setStatus("Scan Finished");
     } catch (error) {
       console.log(error);
+
+      setStatus("Scan Error");
     }
 
     setIsSending(false);
   };
 
-  const startAutoCapture = () => {
-    setInterval(() => {
-      captureFrame();
-    }, 1000);
+  const stopCamera = () => {
+    const stream = videoRef.current.srcObject;
+
+    const tracks = stream.getTracks();
+
+    tracks.forEach((track) => track.stop());
+
+    setStatus("Camera Stopped");
   };
 
   const switchCamera = () => {
@@ -124,17 +132,52 @@ function App() {
         }}
       />
 
-      <button
-        onClick={switchCamera}
+      <div
         style={{
-          padding: "10px 20px",
-          borderRadius: "10px",
-          border: "none",
-          cursor: "pointer",
+          display: "flex",
+          gap: "10px",
         }}
       >
-        Switch Camera
-      </button>
+        <button
+          onClick={captureFrame}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "10px",
+            border: "none",
+            cursor: "pointer",
+            background: "green",
+            color: "white",
+          }}
+        >
+          Scan
+        </button>
+
+        <button
+          onClick={stopCamera}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "10px",
+            border: "none",
+            cursor: "pointer",
+            background: "red",
+            color: "white",
+          }}
+        >
+          Stop
+        </button>
+
+        <button
+          onClick={switchCamera}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "10px",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          Switch
+        </button>
+      </div>
 
       <h2>{status}</h2>
 
