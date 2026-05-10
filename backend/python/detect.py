@@ -14,17 +14,50 @@ if img is None:
     print("PALSU")
     sys.exit()
 
-img = cv2.resize(img, (500, 250))
+# resize kamera
+img = cv2.resize(img, (640, 480))
 
-gray1 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# =========================
+# CROP AREA TENGAH
+# =========================
+
+h, w = img.shape[:2]
+
+crop = img[
+    int(h * 0.25):int(h * 0.75),
+    int(w * 0.1):int(w * 0.9)
+]
+
+crop = cv2.resize(crop, (600, 300))
+
+# =========================
+# PREPROCESS
+# =========================
+
+gray1 = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+
+# contrast
+gray1 = cv2.equalizeHist(gray1)
+
+# blur dikit
+gray1 = cv2.GaussianBlur(gray1, (3, 3), 0)
+
+# edge
+gray1 = cv2.Canny(gray1, 100, 200)
 
 # =========================
 # ORB
 # =========================
 
-orb = cv2.ORB_create()
+orb = cv2.ORB_create(
+    nfeatures=10000
+)
 
 kp1, des1 = orb.detectAndCompute(gray1, None)
+
+if des1 is None:
+    print("PALSU")
+    sys.exit()
 
 # =========================
 # TEMPLATE
@@ -48,8 +81,10 @@ templates = [
 best_score = 0
 best_money = "UNKNOWN"
 
+bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+
 # =========================
-# MATCHING
+# LOOP TEMPLATE
 # =========================
 
 for item in templates:
@@ -59,22 +94,36 @@ for item in templates:
     if template is None:
         continue
 
-    template = cv2.resize(template, (500, 250))
+    template = cv2.resize(template, (600, 300))
 
     gray2 = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
 
+    gray2 = cv2.equalizeHist(gray2)
+
+    gray2 = cv2.GaussianBlur(gray2, (3, 3), 0)
+
+    gray2 = cv2.Canny(gray2, 100, 200)
+
     kp2, des2 = orb.detectAndCompute(gray2, None)
 
-    if des1 is None or des2 is None:
+    if des2 is None:
         continue
 
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.knnMatch(des1, des2, k=2)
 
-    matches = bf.match(des1, des2)
+    good = []
 
-    matches = sorted(matches, key=lambda x: x.distance)
+    for pair in matches:
 
-    score = len(matches)
+        if len(pair) < 2:
+            continue
+
+        m, n = pair
+
+        if m.distance < 0.8 * n.distance:
+            good.append(m)
+
+    score = len(good)
 
     print(item["name"], score)
 
@@ -88,10 +137,7 @@ for item in templates:
 
 print("BEST:", best_score)
 
-if best_score > 80:
-
+if best_score >= 10:
     print(f"ASLI - Rp {best_money}")
-
 else:
-
     print("PALSU")
